@@ -58,18 +58,20 @@ void * SLPool::Allocate( size_t sizeByte ){
 
 void SLPool::Free(void * al_mem)
 {
-    Block *m_new_pool_temp = reinterpret_cast<Block*>(reinterpret_cast<int*>(al_mem)-1U); //Talvez mudar o int.
-    Block *m_free_s = (&m_sentinel)->m_next;
-    Block *m_new_sentinel = &m_sentinel;
+    Block *m_new_pool_temp = reinterpret_cast<Block*>(reinterpret_cast<int*>(al_mem)-1U); // Voltando a posiçao do head para percorrer o bloco todo.
+    Block *m_free_s = (&m_sentinel)->m_next; //Iniciando um ponteiro para a 1° área livre (fast)
+    Block *m_new_sentinel = &m_sentinel; //Iniciando um ponteiro para o sentinela (slow)
     
+    // Percore a lista de áreas livres
     while (m_free_s!=nullptr)
     {
     
-        if (!(m_free_s < m_new_pool_temp))
+    	// Percorre as áreas livres até que a área indicada por m_new_pool_temp esteja entre m_free_s e m_new_sentinel.
+        if (m_free_s > m_new_pool_temp)
         {
-
             if ((m_new_sentinel + m_new_sentinel->m_length == m_new_pool_temp) and (m_new_pool_temp + m_new_pool_temp->m_length == m_free_s))
             {
+            	// Caso a memória alocada esteja diretamente entre duas áreas livres (1).
                 m_new_sentinel->m_length = m_new_sentinel->m_length + m_free_s->m_length + m_new_pool_temp->m_length;
                 m_free_s->m_length = 0;
                 m_new_pool_temp->m_length = 0;
@@ -77,35 +79,41 @@ void SLPool::Free(void * al_mem)
             } 
             else if (m_new_pool_temp + m_new_pool_temp->m_length == m_free_s)
             {
+            	// Caso a memória alocada esteja diretamente atrás de uma área livre (2).
                 m_new_pool_temp->m_length = m_new_pool_temp->m_length + m_free_s->m_length;
                 m_free_s->m_length = 0;
                 m_new_pool_temp->m_next = m_free_s->m_next;
             }
             else if (m_new_sentinel+m_new_sentinel->m_length == m_new_pool_temp)
             {
+            	// Caso a memória alocara esteja diretamente na frente de uma área livre mas entre ela e a proxima área livre tenha outro espaço alocado (3).
                 m_new_sentinel->m_length = m_new_sentinel->m_length + m_new_pool_temp->m_length;
                 m_new_pool_temp->m_length = 0;
             } 
             else
             {
+            	// Similar ao caso anterior, mas agora a memória se encontra entre a área livre anterior (4).
                 m_new_sentinel->m_next = m_new_pool_temp;
                 m_new_pool_temp->m_next = m_free_s;
             }
         }
         else
         {
-        m_new_sentinel = m_new_sentinel->m_next;
+        	// Avançando o sentinel caso m_new_pool_temp ainda não esteja entre as duas áreas livres de m_new_sentinel e m_free_s
+        	m_new_sentinel = m_new_sentinel->m_next;
         }
 
-
-        m_free_s=m_free_s->m_next;
+       	// Avançando m_free_s. 
+        m_free_s = m_free_s->m_next;
     
     }
 
+    // Caso o m_free_s chegue fora das áreas livres, a área alocada só poderá estar logo após dela.
     if (m_free_s == nullptr)
     {
         if (m_new_sentinel+m_new_sentinel->m_length == m_new_pool_temp)
         {
+        	// Assim, caso a condição anterior seja verdade e m_new_pool_temp esteja realmente após m_free_s, a anexamos nas áreas livres (def).
             m_new_sentinel->m_length = m_new_sentinel->m_length + m_new_pool_temp->m_length;
             m_new_sentinel->m_next = m_new_pool_temp->m_next;
             m_new_pool_temp->m_length = 0;
