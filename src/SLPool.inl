@@ -120,3 +120,19 @@ void SLPool::Free(void * al_mem)
         }
     }
 }
+
+void SLPool::MemoryDemonstration( void ){
+	Block *aux = this->m_sentinel.m_next;
+	int count = 0;
+
+	std::cout << "\n##############  THIS IS A MemoryDemonstration  ##############\n ";
+
+	while(aux != nullptr){
+		std::cout << "Àreas livres" << aux < ": que tem [ " << aux->m_length << " ] espaços\n";
+		aux = aux->m_next;
+		count++;
+	}
+
+	std::cout << "O número de àreas livres foram : " << count << std::endl;
+	std::cout << "######### THIS IS THE END#########\n";
+}
