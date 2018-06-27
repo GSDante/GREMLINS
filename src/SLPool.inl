@@ -54,7 +54,61 @@ void * SLPool::Allocate( size_t sizeByte ){
 
 	return reinterpret_cast<Header*>( m_new_pool_temp ) + 1U;
 
-	
+}
+
+void SLPool::Free(void * al_mem)
+{
+    Block *m_new_pool_temp = reinterpret_cast<Block*>(reinterpret_cast<int*>(al_mem)-1U); //Talvez mudar o int.
+    Block *m_free_s = (&m_sentinel)->m_next;
+    Block *m_new_sentinel = &m_sentinel;
+    
+    while (m_free_s!=nullptr)
+    {
+    
+        if (!(m_free_s < m_new_pool_temp))
+        {
+
+            if ((m_new_sentinel + m_new_sentinel->m_length == m_new_pool_temp) and (m_new_pool_temp + m_new_pool_temp->m_length == m_free_s))
+            {
+                m_new_sentinel->m_length = m_new_sentinel->m_length + m_free_s->m_length + m_new_pool_temp->m_length;
+                m_free_s->m_length = 0;
+                m_new_pool_temp->m_length = 0;
+                m_new_sentinel->m_next = m_free_s->m_next;
+            } 
+            else if (m_new_pool_temp + m_new_pool_temp->m_length == m_free_s)
+            {
+                m_new_pool_temp->m_length = m_new_pool_temp->m_length + m_free_s->m_length;
+                m_free_s->m_length = 0;
+                m_new_pool_temp->m_next = m_free_s->m_next;
+            }
+            else if (m_new_sentinel+m_new_sentinel->m_length == m_new_pool_temp)
+            {
+                m_new_sentinel->m_length = m_new_sentinel->m_length + m_new_pool_temp->m_length;
+                m_new_pool_temp->m_length = 0;
+            } 
+            else
+            {
+                m_new_sentinel->m_next = m_new_pool_temp;
+                m_new_pool_temp->m_next = m_free_s;
+            }
+        }
+        else
+        {
+        m_new_sentinel = m_new_sentinel->m_next;
+        }
 
 
+        m_free_s=m_free_s->m_next;
+    
+    }
+
+    if (m_free_s == nullptr)
+    {
+        if (m_new_sentinel+m_new_sentinel->m_length == m_new_pool_temp)
+        {
+            m_new_sentinel->m_length = m_new_sentinel->m_length + m_new_pool_temp->m_length;
+            m_new_sentinel->m_next = m_new_pool_temp->m_next;
+            m_new_pool_temp->m_length = 0;
+        }
+    }
 }
