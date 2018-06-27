@@ -12,12 +12,29 @@ SLPool::SLPool( sizet_t sizeByte ){
 	// A partir daqui, definiremos a sentinela que será uma especie de nó cabeça da lista de áreas livres
 	// ele não pode ser manipulado pelo cliente,pois server de auxilio para manipular novos blocos com essas listas vazias
 	this->m_sentinel.m_next = this->m_pool;
-	this->m_sentienl.m_length = this->m_n_blocks;
+	this->m_sentinel.m_length = 0;
 
 }
 
 // Destruidor é trivial,pois apenas apaga o bloco alocado
 
 SLPool::~SLPool(){
-	delete [] this-m_pool;
+	delete [] this->m_pool;
+}
+
+void * SLPool::Allocate( size_t sizeByte ){
+	
+	Block *m_pool_temp = this->m_pool;
+
+
+	for( auto i = 0; i < m_pool_temp.m_n_blocks ; ++i){
+		if( sizeByte == m_pool_temp->m_sentinel){
+			return (void*)m_pool_temp;
+
+		}if else( sizeByte < this->m_pool_temp->m_length){
+
+		}
+
+	}
+
 }

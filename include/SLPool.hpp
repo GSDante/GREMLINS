@@ -35,7 +35,7 @@ class SLPool: public StoragePool
 		public :
 			explicit SLPool ( size_t );
 			~SLPool();
-			void * Allocate( size_t );
+			void * Allocate( size_t  );
 			void Free( void * );
 	 
 };
