@@ -20,7 +20,7 @@ class SLPool: public StoragePool
 			enum { BlockSize = 16 };
 			union {
 				Block *m_next;
-				char m_raw [ BlockSize - sizeof(Header)];
+				char m_raw [ BlockSize - sizeof(Header)]; // Talvez necessite colocar -sizeof(m_next).
 			};
 
 			Block() : Header(), m_next( nullptr ) { /* Empty */ };
@@ -39,3 +39,7 @@ class SLPool: public StoragePool
 			void Free( void * );
 	 
 };
+
+#include "SLPool.inl"
+
+#endif

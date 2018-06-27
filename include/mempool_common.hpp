@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "StoragePool.hpp"
-#include "SLPool"
+#include "SLPool.hpp"
 
 struct Tag {SLPool * pool;};
 
