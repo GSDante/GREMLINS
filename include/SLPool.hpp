@@ -37,7 +37,7 @@ class SLPool: public StoragePool
 			~SLPool();
 			void * Allocate( size_t  );
 			void Free( void * );
-	 
+	 		void MemoryDemonstration( void );
 };
 
 #include "SLPool.inl"

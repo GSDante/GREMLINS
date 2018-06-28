@@ -135,4 +135,5 @@ void SLPool::MemoryDemonstration( void ){
 
 	std::cout << "O número de àreas livres foram : " << count << std::endl;
 	std::cout << "######### THIS IS THE END#########\n";
+	
 }
