@@ -25,75 +25,113 @@ SLPool::~SLPool(){
 	delete [] this->m_pool;
 }
 
-/*
+
 void * SLPool::Allocate( size_t sizeByte ){
 
-	Block *m_new_pool_temp = this->m_sentinel.m_next; // servirar pra iniciar o laço com a àrea vazia
-	Block *m_new_sentinel = &this->m_sentinel;// gurando o valor pra continuar a zona livre
+	size_t alloc_area = std::ceil(static_cast<float>(sizeByte)/Block::BlockSize); // Adquire o tamanho necessário de blocos para suprir a quantidade de memória requisitada.
+	Block *m_new_pool_temp = m_sentinel.m_next; // servirar pra iniciar o laço com a àrea vazia
+	Block *m_new_sentinel = &m_sentinel;// gurando o valor pra continuar a zona livre
 
-	while( m_new_pool_temp->m_length < m_n_blocks && m_new_pool_temp != nullptr ){
+	/*
+	while( m_new_pool_temp->m_length < alloc_area && m_new_pool_temp != nullptr ){
 		m_new_pool_temp = m_new_pool_temp->m_next;// aqui há a procura de um espaço que caiba o tamanho pedido
 		m_new_sentinel = m_new_sentinel-> m_next;// sendo que há sempre a atualização dos valores necessários
 	}
+	*/
 	
 	if (m_new_pool_temp == nullptr) // exceção para caso não haja tamanho suficiente
 	{
 		throw std::bad_alloc();
 	}
 
-	if (m_n_blocks == m_new_pool_temp->m_length ) // condição de se o tamanho for igual , e o else para caso for maior do que pedido
+	while(m_new_pool_temp != nullptr)
 	{
-		m_new_sentinel->m_next = m_new_pool_temp->m_next;// a area livre passa a ser a anterior da zona ocupada pela solicitação
 
-	}else{
+		if (alloc_area == m_new_pool_temp->m_length ) // condição de se o tamanho for igual , e o else para caso for maior do que pedido
+		{
+			m_new_sentinel->m_next = m_new_pool_temp->m_next;// a area livre passa a ser a anterior da zona ocupada pela solicitação
 
-		m_new_sentinel->m_next = m_new_pool_temp + m_n_blocks;
-		m_new_sentinel->m_next->m_length = m_new_pool_temp->m_length - m_n_blocks;
-		m_new_sentinel->m_next->m_next = m_new_pool_temp->m_next;
-		m_new_pool_temp->m_length = m_n_blocks;
-		// nesse else, temos o caso da zona pedida ser menor do que a diponivel,para isso: a zona livre passa a ser a anterior
-		// pulando a parte alocada ; configura-se o tamanho para ser o tamanho anterios menos a quantidade de blocos;
-		// e a nova zona aponta para a próxima sem alteração;
+			break;
+		}
+		else if(alloc_area < m_new_pool_temp->m_length)
+		{
+
+			m_new_sentinel->m_next = m_new_pool_temp + alloc_area;
+			m_new_sentinel->m_next->m_length = m_new_pool_temp->m_length - alloc_area;
+			m_new_sentinel->m_next->m_next = m_new_pool_temp->m_next;
+			m_new_pool_temp->m_length = alloc_area;
+
+			break;
+			// nesse else, temos o caso da zona pedida ser menor do que a diponivel,para isso: a zona livre passa a ser a anterior
+			// pulando a parte alocada ; configura-se o tamanho para ser o tamanho anterios menos a quantidade de blocos;
+			// e a nova zona aponta para a próxima sem alteração;
+		}
+
+		m_new_pool_temp = m_new_pool_temp->m_next;
+		m_new_sentinel = m_new_sentinel->m_next;
 	}
 
 	return reinterpret_cast<Header*>( m_new_pool_temp ) + 1U;
 
 }
-*/
 
-void* SLPool::Allocate(size_t bytes)
-{
-    unsigned int Nblocks = std::ceil(static_cast<float>(bytes)/Block::BlockSize);
-    Block *ptReserved = m_sentinel.m_next;
-    Block *ptPrevReserved = &m_sentinel;
-    
-    for (;ptReserved != nullptr; ptPrevReserved = ptReserved,
-         ptReserved = ptReserved->m_next)
-    {
+void * SLPool::Allocate_Bestfit( size_t sizeByte ){
 
-        if (ptReserved->m_length >= Nblocks)
-        {
-            if (ptReserved->m_length == Nblocks)
-            {
-                ptPrevReserved->m_next = ptReserved->m_next;
-            } 
-            else
-            {
-                ptPrevReserved->m_next = ptReserved + Nblocks;
-                ptPrevReserved->m_next->m_next = ptReserved->m_next;
-                ptPrevReserved->m_next->m_length = ptReserved->m_length - Nblocks;
-                ptReserved->m_length = Nblocks;
-            }
-            
-            if (m_sentinel.m_next == ptReserved)
-            {
-                m_sentinel.m_next = ptReserved->m_next;
-            }
-            return reinterpret_cast<void*>(reinterpret_cast<int*>(ptReserved)+1U);
-        }   
-    }
+	size_t alloc_area = std::ceil(static_cast<float>(sizeByte)/Block::BlockSize); // Adquire o tamanho necessário de blocos para suprir a quantidade de memória requisitada.
+	Block *m_new_pool_temp = m_sentinel.m_next; // servirar pra iniciar o laço com a àrea vazia
+	Block *m_new_sentinel = &m_sentinel;// gurando o valor pra continuar a zona livre
+	int i = 0;
+	size_t menor;
+	Block *best_fit_1 = nullptr;
+	Block *best_fit_2 = nullptr;
 
-    throw(std::bad_alloc());    
+	
+	if (m_new_pool_temp == nullptr) // exceção para caso não haja tamanho suficiente
+	{
+		throw std::bad_alloc();
+	}
+
+	while(m_new_pool_temp != nullptr)
+	{
+
+		if (alloc_area == m_new_pool_temp->m_length ) // condição de se o tamanho for igual , e o else para caso for maior do que pedido
+		{
+			m_new_sentinel->m_next = m_new_pool_temp->m_next;// a area livre passa a ser a anterior da zona ocupada pela solicitação
+
+			return reinterpret_cast<Header*>( m_new_pool_temp ) + 1U;
+		}
+		else if(alloc_area < m_new_pool_temp->m_length)
+		{
+
+			if(i == 0)
+			{
+				menor = m_new_pool_temp->m_length;
+				best_fit_1 = m_new_pool_temp;
+				best_fit_2 = m_new_sentinel;
+
+				i++;
+			}
+			else if(menor > m_new_pool_temp->m_length)
+			{
+				menor = m_new_pool_temp->m_length;
+				best_fit_1 = m_new_pool_temp;
+				best_fit_2 = m_new_sentinel;
+			}
+			// nesse else, temos o caso da zona pedida ser menor do que a diponivel,para isso: a zona livre passa a ser a anterior
+			// pulando a parte alocada ; configura-se o tamanho para ser o tamanho anterios menos a quantidade de blocos;
+			// e a nova zona aponta para a próxima sem alteração;
+		}
+
+		m_new_pool_temp = m_new_pool_temp->m_next;
+		m_new_sentinel = m_new_sentinel->m_next;
+	}
+
+	best_fit_2->m_next = best_fit_1 + alloc_area;
+	best_fit_2->m_next->m_length = best_fit_1->m_length - alloc_area;
+	best_fit_2->m_next->m_next = best_fit_1->m_next;
+	best_fit_1->m_length = alloc_area;
+
+	return reinterpret_cast<Header*>( best_fit_1 ) + 1U;
 
 }
 
@@ -178,44 +216,3 @@ void SLPool::MemoryDemonstration( void ){
 	std::cout << "######### THIS IS THE END#########\n";
 	
 }
-
-/*
-void SLPool::MemoryMap(void)
-{
-    int i=0;
-    int j=0;
-    Block* slave = (&m_sentinel)->m_next;
-
-    while(i < (int)m_n_blocks-1)
-    {       
-            if((m_pool+i) == slave)
-            {
-
-                j = (m_pool+i)->m_length;
-
-                while(j > 0 and i < (int)m_n_blocks)
-                {
-                    std::cout<<"| |";
-                    j--;
-                    i++;
-                }
-
-                slave = slave->m_next;
-
-            }
-            else
-            {
-                j = (m_pool+i)->m_length;
-
-                while(j > 0 and i < (int)m_n_blocks)
-                {
-                    std::cout <<"||";
-                    j--;
-                    i++;
-                } 
-            }
-        j = 0;
-    }
-    std::cout << "\n\n";
-}
-*/

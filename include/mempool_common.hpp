@@ -25,9 +25,17 @@ void *operator new(size_t bytes) { // Regular new
 
 void * operator new[]( size_t bytes, SLPool & p )
 {
-	Tag* const tag = reinterpret_cast<Tag *> ( p.Allocate(bytes + sizeof(Tag)) );
+	Tag* const tag = reinterpret_cast<Tag *> ( p.Allocate_Bestfit(bytes + sizeof(Tag)) );
 	tag->pool = &p;
 	// skip sizeof tag to get the raw data-block.
+	return ( reinterpret_cast<void *>( tag + 1U ) );
+}
+
+void * operator new[]( size_t bytes ) 
+{ // Regular new
+	Tag* const tag = reinterpret_cast<Tag *>( std::malloc(bytes + sizeof(Tag)) ); 
+	tag->pool = nullptr;
+// skip sizeof tag to get the raw data-block.
 	return ( reinterpret_cast<void *>( tag + 1U ) );
 }
 

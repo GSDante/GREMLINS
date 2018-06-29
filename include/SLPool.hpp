@@ -36,9 +36,11 @@ class SLPool: public StoragePool
 			explicit SLPool ( size_t sizeByte);
 			~SLPool();
 			void * Allocate( size_t  );
+			void * Allocate_Bestfit(size_t);
 			void Free( void * );
 	 		void MemoryDemonstration( void );
 	 		void MemoryMap(void);
+
 };
 
 #include "../src/SLPool.inl"
