@@ -1,16 +1,19 @@
 #include "../include/SLPool.hpp"
 #include <iostream>
+#include <utility>
+#include <cmath>
 
 
-SLPool::SLPool( sizet_t sizeByte ){
+SLPool::SLPool( size_t sizeByte ){
 
 	this->m_n_blocks = ( sizeByte/Block::BlockSize ) + 1; // Formulada dado no texto para definir o numero de blocos +1
 	// A partir definiremos a "fileira" de blocos como se fosse uma lista encadeada
 	this->m_pool = new Block[this->m_n_blocks]; // concatenando os blocos como se fosse uma lista
 	this->m_pool->m_next = nullptr; // nullptr por está criando um bloco vazio
-	this->m_pool->m_length = this->m_n_blocks; // o tamanho vai ser mutável de acordo com o tamanho necessaŕio
+	this->m_pool->m_length = this->m_n_blocks - 1; // o tamanho vai ser mutável de acordo com o tamanho necessaŕio
 	// A partir daqui, definiremos a sentinela que será uma especie de nó cabeça da lista de áreas livres
 	// ele não pode ser manipulado pelo cliente,pois server de auxilio para manipular novos blocos com essas listas vazias
+	m_sentinel = m_pool[m_n_blocks - 1];
 	this->m_sentinel.m_next = this->m_pool;
 	this->m_sentinel.m_length = 0;
 
@@ -22,6 +25,7 @@ SLPool::~SLPool(){
 	delete [] this->m_pool;
 }
 
+/*
 void * SLPool::Allocate( size_t sizeByte ){
 
 	Block *m_new_pool_temp = this->m_sentinel.m_next; // servirar pra iniciar o laço com a àrea vazia
@@ -32,9 +36,9 @@ void * SLPool::Allocate( size_t sizeByte ){
 		m_new_sentinel = m_new_sentinel-> m_next;// sendo que há sempre a atualização dos valores necessários
 	}
 	
-	if (n_new_pool_temp == nullptr) // exceção para caso não haja tamanho suficiente
+	if (m_new_pool_temp == nullptr) // exceção para caso não haja tamanho suficiente
 	{
-		throw std::bad_alloc( "Não tem espaço disponível.");
+		throw std::bad_alloc();
 	}
 
 	if (m_n_blocks == m_new_pool_temp->m_length ) // condição de se o tamanho for igual , e o else para caso for maior do que pedido
@@ -53,6 +57,43 @@ void * SLPool::Allocate( size_t sizeByte ){
 	}
 
 	return reinterpret_cast<Header*>( m_new_pool_temp ) + 1U;
+
+}
+*/
+
+void* SLPool::Allocate(size_t bytes)
+{
+    unsigned int Nblocks = std::ceil(static_cast<float>(bytes)/Block::BlockSize);
+    Block *ptReserved = m_sentinel.m_next;
+    Block *ptPrevReserved = &m_sentinel;
+    
+    for (;ptReserved != nullptr; ptPrevReserved = ptReserved,
+         ptReserved = ptReserved->m_next)
+    {
+
+        if (ptReserved->m_length >= Nblocks)
+        {
+            if (ptReserved->m_length == Nblocks)
+            {
+                ptPrevReserved->m_next = ptReserved->m_next;
+            } 
+            else
+            {
+                ptPrevReserved->m_next = ptReserved + Nblocks;
+                ptPrevReserved->m_next->m_next = ptReserved->m_next;
+                ptPrevReserved->m_next->m_length = ptReserved->m_length - Nblocks;
+                ptReserved->m_length = Nblocks;
+            }
+            
+            if (m_sentinel.m_next == ptReserved)
+            {
+                m_sentinel.m_next = ptReserved->m_next;
+            }
+            return reinterpret_cast<void*>(reinterpret_cast<int*>(ptReserved)+1U);
+        }   
+    }
+
+    throw(std::bad_alloc());    
 
 }
 
@@ -83,6 +124,12 @@ void SLPool::Free(void * al_mem)
                 m_new_pool_temp->m_length = m_new_pool_temp->m_length + m_free_s->m_length;
                 m_free_s->m_length = 0;
                 m_new_pool_temp->m_next = m_free_s->m_next;
+
+                if(m_new_pool_temp == m_pool)
+                {
+                	m_sentinel.m_next = m_new_pool_temp;
+                }
+
             }
             else if (m_new_sentinel+m_new_sentinel->m_length == m_new_pool_temp)
             {
@@ -108,16 +155,10 @@ void SLPool::Free(void * al_mem)
     
     }
 
-    // Caso o m_free_s chegue fora das áreas livres, a área alocada só poderá estar logo após dela.
+    // Caso o m_free_s chegue fora das áreas livres, é por que toda a memória foi consumida, então basta ligar a referência do sentinel para o bloco que se deseja deletar.
     if (m_free_s == nullptr)
     {
-        if (m_new_sentinel+m_new_sentinel->m_length == m_new_pool_temp)
-        {
-        	// Assim, caso a condição anterior seja verdade e m_new_pool_temp esteja realmente após m_free_s, a anexamos nas áreas livres (def).
-            m_new_sentinel->m_length = m_new_sentinel->m_length + m_new_pool_temp->m_length;
-            m_new_sentinel->m_next = m_new_pool_temp->m_next;
-            m_new_pool_temp->m_length = 0;
-        }
+        m_new_sentinel->m_next = m_new_pool_temp; // Atualização da referência.
     }
 }
 
@@ -128,7 +169,7 @@ void SLPool::MemoryDemonstration( void ){
 	std::cout << "\n##############  THIS IS A MemoryDemonstration  ##############\n ";
 
 	while(aux != nullptr){
-		std::cout << "Àreas livres" << aux < ": que tem [ " << aux->m_length << " ] espaços\n";
+		std::cout << "Àreas livres: " << aux << ": que tem [ " << aux->m_length << " ] espaços\n";
 		aux = aux->m_next;
 		count++;
 	}
@@ -137,3 +178,44 @@ void SLPool::MemoryDemonstration( void ){
 	std::cout << "######### THIS IS THE END#########\n";
 	
 }
+
+/*
+void SLPool::MemoryMap(void)
+{
+    int i=0;
+    int j=0;
+    Block* slave = (&m_sentinel)->m_next;
+
+    while(i < (int)m_n_blocks-1)
+    {       
+            if((m_pool+i) == slave)
+            {
+
+                j = (m_pool+i)->m_length;
+
+                while(j > 0 and i < (int)m_n_blocks)
+                {
+                    std::cout<<"| |";
+                    j--;
+                    i++;
+                }
+
+                slave = slave->m_next;
+
+            }
+            else
+            {
+                j = (m_pool+i)->m_length;
+
+                while(j > 0 and i < (int)m_n_blocks)
+                {
+                    std::cout <<"||";
+                    j--;
+                    i++;
+                } 
+            }
+        j = 0;
+    }
+    std::cout << "\n\n";
+}
+*/

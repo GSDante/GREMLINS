@@ -30,16 +30,17 @@ class SLPool: public StoragePool
 		private :
 			unsigned int m_n_blocks;
 			Block *m_pool;
-			Block &m_sentinel;
+			Block m_sentinel;
 
 		public :
-			explicit SLPool ( size_t );
+			explicit SLPool ( size_t sizeByte);
 			~SLPool();
 			void * Allocate( size_t  );
 			void Free( void * );
 	 		void MemoryDemonstration( void );
+	 		void MemoryMap(void);
 };
 
-#include "SLPool.inl"
+#include "../src/SLPool.inl"
 
 #endif

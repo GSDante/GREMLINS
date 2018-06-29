@@ -23,6 +23,14 @@ void *operator new(size_t bytes) { // Regular new
 	return (reinterpret_cast<void*>(tag + 1U));
 }
 
+void * operator new[]( size_t bytes, SLPool & p )
+{
+	Tag* const tag = reinterpret_cast<Tag *> ( p.Allocate(bytes + sizeof(Tag)) );
+	tag->pool = &p;
+	// skip sizeof tag to get the raw data-block.
+	return ( reinterpret_cast<void *>( tag + 1U ) );
+}
+
 void operator delete (void *arg) noexcept {
 	// We need to subtract 1 U ( in fact , pointer arithmetics ) because arg
 	// points to the raw data ( second block of information ).
@@ -33,3 +41,5 @@ void operator delete (void *arg) noexcept {
 	 else
 	  	std::free(tag); // Memory block belongs to the operational system .
 }
+
+#endif
